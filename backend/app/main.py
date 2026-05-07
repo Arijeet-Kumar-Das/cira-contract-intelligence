@@ -14,9 +14,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
+from app.api import auth_routes
 from app.db.session import engine
 from app.db.base import Base
 from app.models.contract import Contract  # noqa: F401 — must import so Base knows about it
+from app.models.organization import Organization
+from app.models.user import User
 
 
 # ──────────────────────────────────────────────────────────
@@ -58,7 +61,8 @@ Base.metadata.create_all(bind=engine)
 # Route Registration
 # ──────────────────────────────────────────────────────────
 
-# Mount the API router (all endpoints from routes.py)
+# Mount the API routers
+app.include_router(auth_routes.router)
 app.include_router(router)
 
 

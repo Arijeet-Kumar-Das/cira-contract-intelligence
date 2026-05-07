@@ -16,8 +16,9 @@ from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from app.api.deps import get_db
+from app.api.deps import get_db, get_current_user
 from app.models.contract import Contract
+from app.models.user import User
 from app.services.file_service import save_file
 from app.services.text_service import extract_text
 from app.services.risk_service import predict_risk
@@ -88,7 +89,8 @@ class ClauseAnalysisResponse(BaseModel):
 @router.post("/upload", response_model=UploadResponse)
 async def upload_file(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Upload a legal document (PDF, image, or text file) for risk analysis.
@@ -133,6 +135,7 @@ async def upload_file(
         file_path=file_path,
         extracted_text=text if text else None,
         risk_score=risk,
+        organization_id=current_user.organization_id,
     )
 
     db.add(new_contract)
@@ -153,7 +156,7 @@ async def upload_file(
 # ──────────────────────────────────────────────────────────
 
 @router.post("/analyze", response_model=AnalyzeResponse)
-def analyze_clause(request: AnalyzeRequest):
+def analyze_clause(request: AnalyzeRequest, current_user: User = Depends(get_current_user)):
     """
     Analyze a raw text clause/snippet for risk.
     Useful for quick checks without uploading a full document.
@@ -180,7 +183,7 @@ def analyze_clause(request: AnalyzeRequest):
 # ──────────────────────────────────────────────────────────
 
 @router.post("/analyze/clauses", response_model=ClauseAnalysisResponse)
-def analyze_clauses(request: AnalyzeRequest):
+def analyze_clauses(request: AnalyzeRequest, current_user: User = Depends(get_current_user)):
     """
     Perform clause-level risk analysis on contract text.
 
@@ -216,12 +219,12 @@ def analyze_clauses(request: AnalyzeRequest):
 # ──────────────────────────────────────────────────────────
 
 @router.get("/contracts", response_model=list[ContractResponse])
-def list_contracts(db: Session = Depends(get_db)):
+def list_contracts(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Returns a list of all contracts that have been uploaded and analyzed.
     Ordered by most recent first.
     """
-    contracts = db.query(Contract).order_by(Contract.created_at.desc()).all()
+    contracts = db.query(Contract).filter(Contract.organization_id == current_user.organization_id).order_by(Contract.created_at.desc()).all()
 
     return [
         ContractResponse(
@@ -241,12 +244,12 @@ def list_contracts(db: Session = Depends(get_db)):
 # ──────────────────────────────────────────────────────────
 
 @router.get("/contracts/{contract_id}", response_model=ContractResponse)
-def get_contract(contract_id: int, db: Session = Depends(get_db)):
+def get_contract(contract_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Retrieve a single contract by its ID.
     Returns 404 if the contract does not exist.
     """
-    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    contract = db.query(Contract).filter(Contract.id == contract_id, Contract.organization_id == current_user.organization_id).first()
 
     if not contract:
         raise HTTPException(status_code=404, detail=f"Contract with id {contract_id} not found.")
@@ -266,7 +269,7 @@ def get_contract(contract_id: int, db: Session = Depends(get_db)):
 # ──────────────────────────────────────────────────────────
 
 @router.get("/contracts/{contract_id}/clauses", response_model=ClauseAnalysisResponse)
-def get_contract_clause_analysis(contract_id: int, db: Session = Depends(get_db)):
+def get_contract_clause_analysis(contract_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Performs clause-level risk analysis on a previously uploaded contract.
     Retrieves the contract text from the database and runs the analysis pipeline.
@@ -274,7 +277,7 @@ def get_contract_clause_analysis(contract_id: int, db: Session = Depends(get_db)
     Returns 404 if the contract doesn't exist.
     Returns 400 if no text was extracted from the contract.
     """
-    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    contract = db.query(Contract).filter(Contract.id == contract_id, Contract.organization_id == current_user.organization_id).first()
 
     if not contract:
         raise HTTPException(

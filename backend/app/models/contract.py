@@ -5,7 +5,8 @@ Represents a legal document that has been uploaded, analyzed,
 and scored for risk. Maps to the 'contracts' table in SQLite.
 """
 
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.db.base import Base
 
@@ -29,4 +30,8 @@ class Contract(Base):
     file_path = Column(String(500), nullable=False)
     extracted_text = Column(Text, nullable=True)  # optional — store extracted text for auditing
     risk_score = Column(String(50), nullable=False, default="unknown")
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    organization = relationship("Organization", back_populates="contracts")

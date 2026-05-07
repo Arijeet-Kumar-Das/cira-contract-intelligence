@@ -5,7 +5,47 @@ const API = axios.create({
   baseURL: 'http://localhost:8000',
 });
 
-// Upload a file for analysis
+// ── Attach JWT to every request ──
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem('cira_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// ── Auto-logout on 401 ──
+API.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem('cira_token');
+      localStorage.removeItem('cira_user');
+      // Only redirect if we're not already on auth pages
+      if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(err);
+  },
+);
+
+// ── Auth ──
+export const registerUser = (email, password, organizationName) =>
+  API.post('/auth/register', { email, password, organization_name: organizationName });
+
+export const loginUser = (email, password) => {
+  const formData = new URLSearchParams();
+  formData.append('username', email);
+  formData.append('password', password);
+  return API.post('/auth/login', formData, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
+};
+
+export const getMe = () => API.get('/auth/me');
+
+// ── Upload ──
 export const uploadFile = (file, onUploadProgress) => {
   const formData = new FormData();
   formData.append('file', file);
@@ -15,29 +55,13 @@ export const uploadFile = (file, onUploadProgress) => {
   });
 };
 
-// Analyze raw text (simple risk prediction)
-export const analyzeText = (text) => {
-  return API.post('/analyze', { text });
-};
+// ── Analysis ──
+export const analyzeText = (text) => API.post('/analyze', { text });
+export const analyzeClausesText = (text) => API.post('/analyze/clauses', { text });
 
-// Clause-level risk analysis on raw text
-export const analyzeClausesText = (text) => {
-  return API.post('/analyze/clauses', { text });
-};
-
-// Fetch all contracts
-export const getContracts = () => {
-  return API.get('/contracts');
-};
-
-// Fetch a single contract by ID
-export const getContractById = (id) => {
-  return API.get(`/contracts/${id}`);
-};
-
-// Clause-level analysis for a stored contract
-export const getContractClauses = (id) => {
-  return API.get(`/contracts/${id}/clauses`);
-};
+// ── Contracts ──
+export const getContracts = () => API.get('/contracts');
+export const getContractById = (id) => API.get(`/contracts/${id}`);
+export const getContractClauses = (id) => API.get(`/contracts/${id}/clauses`);
 
 export default API;
