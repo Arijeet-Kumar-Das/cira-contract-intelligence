@@ -3,27 +3,31 @@ import React from 'react';
 const riskConfig = {
   low_risk: {
     label: 'Low Risk',
-    bg: 'bg-emerald-500/15',
-    text: 'text-emerald-400',
-    dot: 'bg-emerald-400',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-800',
+    dot: 'bg-emerald-600',
+    ring: 'ring-1 ring-inset ring-emerald-200',
   },
   medium_risk: {
     label: 'Medium Risk',
-    bg: 'bg-amber-500/15',
-    text: 'text-amber-400',
-    dot: 'bg-amber-400',
+    bg: 'bg-amber-50',
+    text: 'text-amber-800',
+    dot: 'bg-amber-600',
+    ring: 'ring-1 ring-inset ring-amber-200',
   },
   high_risk: {
     label: 'High Risk',
-    bg: 'bg-red-500/15',
-    text: 'text-red-400',
-    dot: 'bg-red-400',
+    bg: 'bg-rose-50',
+    text: 'text-rose-800',
+    dot: 'bg-rose-600',
+    ring: 'ring-1 ring-inset ring-rose-200',
   },
   unknown: {
     label: 'Unknown',
-    bg: 'bg-slate-500/15',
-    text: 'text-slate-400',
-    dot: 'bg-slate-400',
+    bg: 'bg-slate-50',
+    text: 'text-slate-700',
+    dot: 'bg-slate-500',
+    ring: 'ring-1 ring-inset ring-slate-200',
   },
 };
 
@@ -32,7 +36,7 @@ const RiskBadge = ({ risk }) => {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${config.bg} ${config.text}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${config.bg} ${config.text} ${config.ring}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
       {config.label}

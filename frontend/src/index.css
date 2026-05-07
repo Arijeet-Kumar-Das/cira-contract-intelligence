@@ -1,7 +1,7 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
 
-/* ─── Global Base Styles ─── */
+/* ─── Global Base Styles (Production SaaS Theme) ─── */
 
 html {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -11,33 +11,62 @@ html {
 
 body {
   margin: 0;
-  background-color: #020617;
-  color: #e2e8f0;
+  background-color: #f6f7fb;
+  color: #0f172a;
 }
 
-/* ─── Custom Scrollbar (Webkit) ─── */
+:root {
+  /* layout */
+  --app-sidebar-w: 280px;
+
+  /* surfaces */
+  --bg: #f6f7fb;
+  --panel: #ffffff;
+  --panel-2: #f8fafc;
+  --border: #e5e7eb;
+
+  /* text */
+  --text: #0f172a;
+  --muted: #475569;
+  --muted-2: #64748b;
+
+  /* brand */
+  --primary: #f97316;
+  --primary-600: #ea580c;
+  --ring: rgba(249, 115, 22, 0.28);
+}
+
+/* ─── Scrollbar (Webkit) ─── */
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(15, 23, 42, 0.04);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
+  background: rgba(15, 23, 42, 0.18);
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: rgba(15, 23, 42, 0.28);
 }
 
 /* ─── Selection ─── */
 
 ::selection {
-  background-color: rgba(99, 102, 241, 0.3);
-  color: #e2e8f0;
+  background-color: rgba(249, 115, 22, 0.18);
+  color: var(--text);
+}
+
+/* ─── Utility: readable focus rings ─── */
+
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ring);
+  border-radius: 10px;
 }

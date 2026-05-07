@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import { uploadFile } from '../services/api';
 import RiskBadge from '../components/RiskBadge';
 import toast from 'react-hot-toast';
+import PageHeader from '../ui/PageHeader';
+import Button from '../ui/Button';
 
 const Upload = () => {
   const [file, setFile] = useState(null);
@@ -10,14 +12,16 @@ const Upload = () => {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+
   const inputRef = useRef(null);
 
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
     if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
-    } else if (e.type === 'dragleave') {
+    } else {
       setDragActive(false);
     }
   };
@@ -25,7 +29,9 @@ const Upload = () => {
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
     setDragActive(false);
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       setFile(e.dataTransfer.files[0]);
       setResult(null);
@@ -47,18 +53,25 @@ const Upload = () => {
     try {
       setUploading(true);
       setProgress(0);
-      setError(null);
       setResult(null);
+      setError(null);
 
       const res = await uploadFile(file, (event) => {
-        const percent = Math.round((event.loaded * 100) / event.total);
+        const percent = Math.round(
+          (event.loaded * 100) / event.total
+        );
+
         setProgress(percent);
       });
 
       setResult(res.data);
-      toast.success('Contract analyzed successfully!');
+
+      toast.success('Analysis complete');
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Upload failed. Please try again.';
+      const msg =
+        err.response?.data?.detail ||
+        'Upload failed. Please try again.';
+
       setError(msg);
       toast.error(msg);
     } finally {
@@ -71,147 +84,288 @@ const Upload = () => {
     setResult(null);
     setError(null);
     setProgress(0);
-    if (inputRef.current) inputRef.current.value = '';
+
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Upload Contract</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Upload a legal document to analyze its risk level
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#f6f6f4] px-4 py-5">
+      <div className="mx-auto max-w-5xl">
+        <PageHeader
+          title="Upload Contract"
+          description="Analyze contracts and detect potential risks."
+        />
 
-      {/* Upload Card */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
-        {/* Drop Zone */}
-        <div
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          onClick={() => inputRef.current?.click()}
-          className={`relative border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all duration-200 ${
-            dragActive
-              ? 'border-indigo-500 bg-indigo-500/5'
-              : file
-              ? 'border-emerald-500/50 bg-emerald-500/5'
-              : 'border-slate-700 hover:border-slate-600 hover:bg-slate-800/30'
-          }`}
-        >
-          <input
-            ref={inputRef}
-            type="file"
-            onChange={handleFileChange}
-            accept=".pdf,.txt,.jpg,.jpeg,.png"
-            className="hidden"
-          />
-
-          {file ? (
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-14 h-14 rounded-xl bg-emerald-500/15 flex items-center justify-center">
-                <svg className="w-7 h-7 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
+        <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_320px]">
+          {/* MAIN PANEL */}
+          <div className="rounded-2xl border border-black/[0.04] bg-white">
+            {/* TOP */}
+            <div className="flex items-center justify-between border-b border-black/[0.04] px-5 py-4">
               <div>
-                <p className="text-sm font-medium text-white">{file.name}</p>
-                <p className="text-xs text-slate-500 mt-1">
-                  {(file.size / 1024).toFixed(1)} KB
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-14 h-14 rounded-xl bg-slate-800 flex items-center justify-center">
-                <svg className="w-7 h-7 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm text-slate-300">
-                  <span className="text-indigo-400 font-medium">Click to upload</span> or drag and drop
-                </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  PDF, TXT, JPG, or PNG
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Document Upload
+                </h2>
 
-        {/* Progress Bar */}
-        {uploading && (
-          <div className="mt-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-400">Uploading & Analyzing...</span>
-              <span className="text-xs text-indigo-400 font-mono">{progress}%</span>
+                <p className="mt-1 text-xs text-slate-500">
+                  PDF, TXT, JPG, PNG
+                </p>
+              </div>
+
+              <div className="rounded-full bg-orange-50 px-3 py-1 text-[11px] font-medium text-orange-700">
+                Secure
+              </div>
             </div>
-            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+
+            {/* DROPZONE */}
+            <div className="p-5">
               <div
-                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${progress}%` }}
-              />
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => inputRef.current?.click()}
+                className={`
+                  relative cursor-pointer rounded-xl border transition-all duration-200
+                  ${
+                    dragActive
+                      ? 'border-orange-300 bg-orange-50'
+                      : file
+                      ? 'border-emerald-300 bg-emerald-50'
+                      : 'border-dashed border-slate-300 bg-[#fafafa] hover:border-slate-400'
+                  }
+                `}
+              >
+                <input
+                  ref={inputRef}
+                  type="file"
+                  onChange={handleFileChange}
+                  accept=".pdf,.txt,.jpg,.jpeg,.png"
+                  className="hidden"
+                />
+
+                <div className="flex min-h-[320px] flex-col items-center justify-center px-6 py-10 text-center">
+                  {file ? (
+                    <>
+                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-emerald-500">
+                        <svg
+                          className="h-6 w-6 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M20 6 9 17l-5-5"
+                          />
+                        </svg>
+                      </div>
+
+                      <h3 className="mt-4 text-sm font-semibold text-slate-900">
+                        {file.name}
+                      </h3>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white">
+                        <svg
+                          className="h-7 w-7 text-slate-700"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={1.8}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 3v12m0-12 4 4m-4-4-4 4M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"
+                          />
+                        </svg>
+                      </div>
+
+                      <h3 className="mt-5 text-base font-semibold text-slate-900">
+                        Drop your contract here
+                      </h3>
+
+                      <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
+                        Drag and drop your file here or click to browse
+                        documents from your device.
+                      </p>
+
+                      <div className="mt-6 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
+                        Browse files
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* PROGRESS */}
+              {uploading && (
+                <div className="mt-5">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-medium text-slate-600">
+                      Processing
+                    </span>
+
+                    <span className="text-xs font-semibold text-slate-800">
+                      {progress}%
+                    </span>
+                  </div>
+
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-orange-500 transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* ERROR */}
+              {error && (
+                <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+                  <p className="text-xs font-medium text-rose-700">
+                    {error}
+                  </p>
+                </div>
+              )}
+
+              {/* BUTTONS */}
+              <div className="mt-5 flex gap-3">
+                <Button
+                  onClick={handleUpload}
+                  disabled={!file || uploading}
+                  className="
+                    h-11 flex-1 rounded-xl
+                    bg-slate-900 text-sm font-medium
+                    hover:bg-slate-800
+                  "
+                >
+                  {uploading
+                    ? 'Analyzing...'
+                    : 'Upload & Analyze'}
+                </Button>
+
+                {(file || result) && (
+                  <Button
+                    onClick={resetForm}
+                    variant="outline"
+                    className="h-11 rounded-xl border-slate-300 px-5 text-sm"
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Error */}
-        {error && (
-          <div className="mt-5 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-            <p className="text-sm text-red-400">{error}</p>
-          </div>
-        )}
+          {/* SIDEBAR */}
+          <div className="space-y-5">
+            {/* INFO */}
+            <div className="rounded-2xl bg-slate-900 p-5 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-orange-300">
+                    Analysis
+                  </p>
 
-        {/* Result */}
-        {result && (
-          <div className="mt-5 p-5 rounded-xl bg-slate-800/60 border border-slate-700">
-            <div className="flex items-center gap-2 mb-4">
-              <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-sm font-semibold text-emerald-400">Analysis Complete</span>
+                  <h3 className="mt-2 text-lg font-semibold leading-snug">
+                    Contract Risk Detection
+                  </h3>
+                </div>
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
+                  <svg
+                    className="h-5 w-5 text-orange-300"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9.75 17 15 12l-5.25-5"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                <div className="rounded-xl bg-white/5 p-4">
+                  <p className="text-[11px] uppercase tracking-wider text-slate-400">
+                    Supported Files
+                  </p>
+
+                  <p className="mt-1 text-sm font-medium">
+                    PDF, TXT, JPG, PNG
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-white/5 p-4">
+                  <p className="text-[11px] uppercase tracking-wider text-slate-400">
+                    Processing
+                  </p>
+
+                  <p className="mt-1 text-sm font-medium">
+                    AI-powered analysis
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-slate-500 mb-1">Contract ID</p>
-                <p className="text-sm text-white font-mono">#{result.contract_id}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 mb-1">File Name</p>
-                <p className="text-sm text-white truncate">{result.file_name}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-xs text-slate-500 mb-2">Risk Score</p>
-                <RiskBadge risk={result.risk_score} />
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Action Buttons */}
-        <div className="mt-6 flex items-center gap-3">
-          <button
-            onClick={handleUpload}
-            disabled={!file || uploading}
-            className="flex-1 py-3 px-6 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40"
-          >
-            {uploading ? 'Analyzing...' : 'Upload & Analyze'}
-          </button>
-          {(file || result) && (
-            <button
-              onClick={resetForm}
-              className="py-3 px-5 rounded-xl text-sm font-medium text-slate-400 bg-slate-800 hover:bg-slate-700 hover:text-slate-300 transition-colors"
-            >
-              Reset
-            </button>
-          )}
+            {/* RESULT */}
+            {result && (
+              <div className="rounded-2xl border border-black/[0.04] bg-white p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-slate-400">
+                      Result
+                    </p>
+
+                    <h3 className="mt-1 text-base font-semibold text-slate-900">
+                      Contract #{result.contract_id}
+                    </h3>
+                  </div>
+
+                  <RiskBadge risk={result.risk_score} />
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  <div className="rounded-xl bg-[#f8f8f7] p-4">
+                    <p className="text-[11px] uppercase tracking-wider text-slate-400">
+                      File Name
+                    </p>
+
+                    <p className="mt-1 truncate text-sm font-medium text-slate-900">
+                      {result.file_name}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-[#f8f8f7] p-4">
+                    <p className="text-[11px] uppercase tracking-wider text-slate-400">
+                      Contract ID
+                    </p>
+
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                      #{result.contract_id}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 };
-
 export default Upload;

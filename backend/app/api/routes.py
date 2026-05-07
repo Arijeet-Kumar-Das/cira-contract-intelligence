@@ -6,8 +6,10 @@ Defines all HTTP endpoints for the CIRA backend.
 Endpoints:
     POST /upload    — Upload a legal document for risk analysis
     POST /analyze   — Analyze raw text for risk (no file upload)
+    POST /analyze/clauses — Clause-level risk analysis with explanations
     GET  /contracts — List all analyzed contracts
     GET  /contracts/{id} — Get a specific contract by ID
+    GET  /contracts/{id}/clauses — Clause-level analysis for a stored contract
 """
 
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
@@ -19,6 +21,7 @@ from app.models.contract import Contract
 from app.services.file_service import save_file
 from app.services.text_service import extract_text
 from app.services.risk_service import predict_risk
+from app.services.clause_analysis_service import analyze_contract_clauses
 
 # Create the router — all routes are registered on this
 router = APIRouter()
@@ -55,6 +58,27 @@ class ContractResponse(BaseModel):
     extracted_text: str | None
     risk_score: str
     created_at: str
+
+
+# ── Clause Analysis Schemas ──
+
+class ClauseResult(BaseModel):
+    """Analysis result for a single clause."""
+    id: int
+    text: str
+    risk: str
+    confidence: float
+    explanation: str
+    risk_categories: list[str] = []
+
+
+class ClauseAnalysisResponse(BaseModel):
+    """Full clause-level analysis response."""
+    overallRisk: str
+    overallScore: float
+    totalClauses: int
+    riskDistribution: dict[str, int]
+    clauses: list[ClauseResult]
 
 
 # ──────────────────────────────────────────────────────────
@@ -152,6 +176,42 @@ def analyze_clause(request: AnalyzeRequest):
 
 
 # ──────────────────────────────────────────────────────────
+# POST /analyze/clauses — Clause-Level Risk Analysis
+# ──────────────────────────────────────────────────────────
+
+@router.post("/analyze/clauses", response_model=ClauseAnalysisResponse)
+def analyze_clauses(request: AnalyzeRequest):
+    """
+    Perform clause-level risk analysis on contract text.
+
+    This endpoint:
+        1. Splits the text into individual clauses
+        2. Analyzes each clause for risk level
+        3. Generates explanations for each clause
+        4. Computes an overall contract risk score
+
+    Request body:
+        { "text": "Full contract text here..." }
+
+    Returns:
+        Structured JSON with overall risk, score, distribution,
+        and per-clause analysis with explanations.
+    """
+    if not request.text or not request.text.strip():
+        raise HTTPException(status_code=400, detail="Text field cannot be empty.")
+
+    try:
+        result = analyze_contract_clauses(request.text)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Clause analysis failed: {str(e)}"
+        )
+
+    return ClauseAnalysisResponse(**result)
+
+
+# ──────────────────────────────────────────────────────────
 # GET /contracts — List All Analyzed Contracts
 # ──────────────────────────────────────────────────────────
 
@@ -199,3 +259,41 @@ def get_contract(contract_id: int, db: Session = Depends(get_db)):
         risk_score=contract.risk_score,
         created_at=str(contract.created_at),
     )
+
+
+# ──────────────────────────────────────────────────────────
+# GET /contracts/{contract_id}/clauses — Clause Analysis for Stored Contract
+# ──────────────────────────────────────────────────────────
+
+@router.get("/contracts/{contract_id}/clauses", response_model=ClauseAnalysisResponse)
+def get_contract_clause_analysis(contract_id: int, db: Session = Depends(get_db)):
+    """
+    Performs clause-level risk analysis on a previously uploaded contract.
+    Retrieves the contract text from the database and runs the analysis pipeline.
+
+    Returns 404 if the contract doesn't exist.
+    Returns 400 if no text was extracted from the contract.
+    """
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+
+    if not contract:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Contract with id {contract_id} not found."
+        )
+
+    if not contract.extracted_text or not contract.extracted_text.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="No text available for this contract. Clause analysis requires extracted text."
+        )
+
+    try:
+        result = analyze_contract_clauses(contract.extracted_text)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Clause analysis failed: {str(e)}"
+        )
+
+    return ClauseAnalysisResponse(**result)

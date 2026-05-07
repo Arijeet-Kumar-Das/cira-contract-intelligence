@@ -15,9 +15,14 @@ export const uploadFile = (file, onUploadProgress) => {
   });
 };
 
-// Analyze raw text
+// Analyze raw text (simple risk prediction)
 export const analyzeText = (text) => {
   return API.post('/analyze', { text });
+};
+
+// Clause-level risk analysis on raw text
+export const analyzeClausesText = (text) => {
+  return API.post('/analyze/clauses', { text });
 };
 
 // Fetch all contracts
@@ -28,6 +33,11 @@ export const getContracts = () => {
 // Fetch a single contract by ID
 export const getContractById = (id) => {
   return API.get(`/contracts/${id}`);
+};
+
+// Clause-level analysis for a stored contract
+export const getContractClauses = (id) => {
+  return API.get(`/contracts/${id}/clauses`);
 };
 
 export default API;
